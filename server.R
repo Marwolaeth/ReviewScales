@@ -423,7 +423,7 @@ server <- function(input, output, session) {
   ### Исходная шкала ----
   scaleset <- reactiveVal(
     list(
-      'Мощность' = list(
+      'Мощность всасывания' = list(
         c('не мощный' = -1, 'средней мощности' = 0, 'мощный'   = 1)
       ),
       'Удобство' = list(
