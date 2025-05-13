@@ -5,10 +5,10 @@ library(shinydashboardPlus)
 
 # UI ----
 ui <- dashboardPage(
-  title = 'Brand Semantics',
+  title = 'ReviewScales',
   skin = 'red',
   
-  header = dashboardHeader(title = 'Brand Semantics', titleWidth = '25%'),
+  header = dashboardHeader(title = 'ReviewScales', titleWidth = '25%'),
   
   ## Боковая панель ----
   sidebar = dashboardSidebar(
@@ -77,8 +77,8 @@ ui <- dashboardPage(
                   value = 'пылесос',
                   width = '100%',
                   placeholder = paste(
-                    'Объекты через запятую, например:',
-                    '«Бренд А, наша компания, мы»'
+                    'Тип продукта в отзыве, например:',
+                    '«ноутбук», «стиральная машина», «мобильное приложение»'
                   )
                 )
               ),
@@ -206,7 +206,7 @@ ui <- dashboardPage(
             textInput(
               'hypothesis_template',
               'Шаблон гипотезы',
-              value = 'Этот {brand_name} {hypothesis}'
+              value = 'Этот {product_type} {hypothesis}'
             ) |> with_helper('hypothesis-template'),
             h5('Предпросмотр: '),
             tags$div(

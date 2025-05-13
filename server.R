@@ -15,9 +15,9 @@ server <- function(input, output, session) {
   iv$add_rule(
     'hypothesis_template',
     sv_regex(
-      pattern = '{brand_name}',
+      pattern = '{product_type}',
       fixed = TRUE,
-      message = 'Шаблон должен содержать строки: `{brand_name}` и `{hypothesis}`'
+      message = 'Шаблон должен содержать строки: `{product_type}` и `{hypothesis}`'
     )
   )
   iv$add_rule(
@@ -26,7 +26,7 @@ server <- function(input, output, session) {
       pattern = '{hypothesis}',
       fixed = TRUE,
       message =
-        'Шаблон должен содержать местозаполнители: `{brand_name}` и `{hypothesis}`.'
+        'Шаблон должен содержать местозаполнители: `{product_type}` и `{hypothesis}`.'
     )
   )
   
@@ -54,7 +54,7 @@ server <- function(input, output, session) {
         double = FALSE
       ) |>
       stringr::str_replace(
-        fixed('{brand_name}'),
+        fixed('{product_type}'),
         fixed(input$object)
       ) |>
       stringr::str_replace(
@@ -150,7 +150,7 @@ server <- function(input, output, session) {
         double = FALSE
       ) |>
       stringr::str_replace(
-        fixed('{brand_name}'),
+        fixed('{product_type}'),
         fixed(tolower(input$object))
       ) |>
       stringr::str_replace(fixed('{hypothesis}'), fixed('{}'))
