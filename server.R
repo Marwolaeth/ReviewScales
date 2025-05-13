@@ -94,25 +94,8 @@ server <- function(input, output, session) {
   
   ## Случайный пример ----
   observeEvent(input$example, {
-    if (stringr::str_detect(input$object, fixed(','))) {
-      objects <- input$object |>
-        stringr::str_split(fixed(',')) |>
-        unlist() |>
-        stringr::str_squish()
-      object <- objects[[1]]
-    } else {
-      object <- input$object
-    }
-    
     ex <- dplyr::slice_sample(examples, n = 1) |>
-      dplyr::mutate(
-        sentence = stringr::str_replace_all(
-          sentence,
-          'Umbrella',
-          object
-        )
-      ) |>
-      dplyr::pull(sentence)
+     dplyr::pull(text)
     
     updateTextInput(
       session,
