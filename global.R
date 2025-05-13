@@ -11,8 +11,7 @@ library(stringr)
 library(tictoc)
 library(reactable)
 
-Sys.setenv(OLLAMA_TIMEOUT = 1200)
-options(timeout = max(1200, getOption('timeout')))
+options(ellmer_timeout_s = 1200)
 
 ## Данные для примеров ----
 examples <- readxl::read_excel('data/example-sentences.xlsx')
