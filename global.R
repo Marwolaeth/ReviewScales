@@ -35,7 +35,7 @@ chat_models <- seq_along(ellmer:::ollama_models()) |>
   purrr::set_names(ellmer:::ollama_models())
 
 ## Шкала тахометров ----
-GAUGE_SCALE <- 5
+GAUGE_SCALE <- 2
 
 ## Prompts ----
 ### System ----

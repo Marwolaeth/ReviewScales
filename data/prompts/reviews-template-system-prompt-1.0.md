@@ -4,9 +4,8 @@
 Analyse customer product reviews to provide objective ratingsitative insights across multiple semantic dimensions.
 
 ### Evaluation Guidelines
-
 1. **Rating Scales**: 
-   - Rate each dimension from a -5 (extremely negative) to +5 (extremely positive)   
+   - Rate each dimension from a -2 (extremely negative) to +2 (extremely positive)   
 Use the 0 when:
      - Insufficient information exists exists
      - No clear evaluation can be made be a review lacks commentary on that dimension
