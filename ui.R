@@ -35,7 +35,6 @@ ui <- dashboardPage(
         label = 'Метод оценки',
         choices = list(
           'Нулевая классификация' = 'classification',
-          'Семантическая близость' = 'similarity',
           'Искусственный интеллект' = 'chat'
         ),
         selected = 'classification'
@@ -74,8 +73,8 @@ ui <- dashboardPage(
                 8,
                 textInput(
                   'object',
-                  'Объект оценки',
-                  value = 'Umbrella',
+                  'Тип продукта',
+                  value = 'пылесос',
                   width = '100%',
                   placeholder = paste(
                     'Объекты через запятую, например:',
@@ -207,7 +206,7 @@ ui <- dashboardPage(
             textInput(
               'hypothesis_template',
               'Шаблон гипотезы',
-              value = '{brand_name} – {hypothesis}'
+              value = 'Этот {brand_name} {hypothesis}'
             ) |> with_helper('hypothesis-template'),
             h5('Предпросмотр: '),
             tags$div(
@@ -217,39 +216,6 @@ ui <- dashboardPage(
               ),
               style = 'color:#888;'
             )
-          ),
-          #### Similarity ----
-          tabPanel(
-            'Семантическая близость',
-            value = 'edit-similarity',
-            
-            ##### Группировать характеристики ----
-            checkboxInput(
-              'similarity_group_items',
-              label = 'Объединять элементы шкалы в одну фразу',
-              value = FALSE
-            ) |> with_helper('group-items'),
-            ##### Агрегация ----
-            radioButtons(
-              'similarity_aggregation',
-              label = 'Метод агрегирования',
-              choices = c(
-                'Автоматически'       = 'auto',
-                'CLS-токен'           = 'cls',
-                'Среднее по токенам'  = 'mean',
-                'Токен объекта'       = 'token'
-              )
-            ) |> with_helper('aggregation'),
-            ##### Метрика ----
-            radioButtons(
-              'similarity_metric',
-              label = 'Метрика расстояния',
-              choices = c(
-                'Косинусная близость' = 'cosine',
-                'Корреляция Спирмена' = 'spearman'
-              ),
-              width = '80%'
-            ) |> with_helper('metrics')
           ),
           #### Chat ----
           tabPanel(

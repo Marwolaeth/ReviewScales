@@ -151,67 +151,10 @@ server <- function(input, output, session) {
       ) |>
       stringr::str_replace(
         fixed('{brand_name}'),
-        fixed(universal_brand_name)
+        fixed(tolower(input$object))
       ) |>
       stringr::str_replace(fixed('{hypothesis}'), fixed('{}'))
-    # glue::glue('{universal_brand_name} – {{}}')
   })
-  
-  ### Similarity ----
-  #### Нормы ----
-  scaleset_norms <- reactive({
-    req(input$method == 'similarity')
-    req(input$model)
-    req(scaleset())
-    
-    print(model_name())
-    
-    if (input$similarity_aggregation %in% c('auto', 'token')) {
-      aggregation <- ifelse(prefix(), 'cls', 'mean')
-    } else {
-      aggregation <- input$similarity_aggregation
-    }
-    
-    as_phrases <- (aggregation == 'cls')
-    
-    tictoc::tic()
-    withProgress(
-      session = session,
-      message = 'Векторизация шкал…',
-      {
-        res <- purrr::map2(
-          scaleset(),
-          seq_along(scaleset()),
-          function(semantic_scale, i) {
-            incProgress(
-              1 / length(scaleset()),
-              message = 'Векторизация шкалы',
-              detail = names(scaleset())[[i]]
-            )
-            scale_result <- .items_to_norms(
-              items = semantic_scale,
-              model = model_name(),
-              as_phrases = as_phrases,
-              template = hypotheses(),
-              prefix = prefix(),
-              group_items = input$similarity_group_items,
-              aggregation = aggregation,
-              device = tolower(input$device)
-            )
-            return(scale_result)
-          }
-        ) |>
-          purrr::set_names(names(scaleset()))
-      })
-    tictoc::toc()
-    res
-  }) |>
-    bindCache(
-      input$model,
-      input$similarity_aggregation,
-      input$similarity_group_items,
-      scaleset()
-    )
   
   ### Чат-модели ----
   #### Промпты ----
@@ -243,6 +186,7 @@ server <- function(input, output, session) {
       scaleset(),
       system_prompt_template = prompt_templates[['system']],
       user_prompt_template = prompt_templates[['user']],
+      product_type = tolower(input$object),
       max_items = 1L
     )
   })
@@ -351,17 +295,8 @@ server <- function(input, output, session) {
     ### Получение модели ----
     print(model_name())
     
-    ### Универсальное название ----
-    if (stringr::str_detect(input$object, fixed(','))) {
-      objects <- input$object |>
-        stringr::str_split(fixed(',')) |>
-        unlist() |>
-        stringr::str_squish()
-    } else {
-      objects <- input$object
-    }
-    
-    text <- .replace_object(input$text, objects, universal_brand_name)
+    text <- input$text
+    object <- tolower(input$object)
     
     print(text)
     print(hypotheses())
@@ -385,32 +320,6 @@ server <- function(input, output, session) {
         session = session,
         message = 'Анализируем…',
         {
-          # Get text embeddings and other parameters once
-          if (input$method == 'similarity') {
-            if (input$similarity_aggregation == 'auto') {
-              aggregation <- ifelse(prefix(), 'cls', 'token')
-            } else {
-              aggregation <- input$similarity_aggregation
-            }
-            
-            tic(msg = 'Embedding text')
-            
-            prgrphs <- paragraphs(text)
-            if (prefix()) prgrphs <- paste('classification:', prgrphs)
-            
-            incProgress(
-              1 / (length(scaleset())^2),
-              message = 'Векторизация текста',
-            )
-            text_embeddings <- text_embed(
-              prgrphs,
-              model = model_name(),
-              aggregation_from_tokens_to_texts = aggregation,
-              select_token = universal_brand_name,
-              device = tolower(input$device)
-            )
-            toc()
-          }
           res <- purrr::map2(
             scaleset(),
             seq_along(scaleset()),
@@ -432,15 +341,6 @@ server <- function(input, output, session) {
                   seed = input$seed,
                   device = tolower(input$device)
                 ) 
-                #### Similarity ----
-              } else if (input$method == 'similarity') {
-                scale_result <- semdiff_similarity(
-                  text_embeddings = text_embeddings,
-                  norm_embeddings = scaleset_norms()[[i]],
-                  similarity_metric = input$similarity_metric,
-                  temperature = 30,
-                  use_softmax = T # Check
-                )
               }
               return(scale_result)
             }
@@ -465,17 +365,6 @@ server <- function(input, output, session) {
         text = isolate(input$text),
         model = isolate(model_name()),
         .before = 0L
-      ) |>
-      ## If instruct model is used
-      mutate(
-        dplyr::across(
-          dplyr::any_of('comment'),
-          ~ stringr::str_replace_all(
-            .,
-            stringr::fixed(universal_brand_name),
-            stringr::fixed(isolate(input$object))
-          )
-        )
       )
     
     eval_history(
@@ -551,20 +440,35 @@ server <- function(input, output, session) {
   ### Исходная шкала ----
   scaleset <- reactiveVal(
     list(
-      'Инновационность' = list(
-        c('устаревший' = -1, 'сдержанный' = 0, 'инновационный'   = 1),
-        c('отсталый'   = -1, 'стабильный' = 0, 'изобретательный' = 1)
+      'Мощность' = list(
+        c('не мощный' = -1, 'средней мощности' = 0, 'мощный'   = 1)
       ),
-      'Популярность' = list(
-        c('немодный'      = -1, 'адекватный'    = 0, 'модный'     = 1),
-        c('неактуальный'  = -1, 'специфический' = 0, 'молодежный' = 1),
-        c('непопулярный'  = -1, 'известный'     = 0, 'популярный' = 1),
-        c('малоизвестный' = -1, 'элитарный'     = 0, 'знаменитый' = 1)
+      'Удобство' = list(
+        c('неудобный'  = -1, 'нормальный'       = 0, 'удобный'    = 1),
+        c('громоздкий' = -1, 'не очень удобный' = 0, 'компактный' = 1)
       ),
-      'Качество' = list(
-        c('некачественный' = -1, 'обычный'     = 0, 'качественный' = 1),
-        c('ненадежный'     = -1, 'нормальный'  = 0, 'надежный'     = 1),
-        c('хлипкий'        = -1, 'стандартный' = 0, 'прочный'      = 1)
+      'Тишина' = list(
+        c('шумный' = -1, 'не очень шумный' = 0, 'тихий' = 1)
+      ),
+      'Качество уборки' = list(
+        c(
+          'плохо убирает пыль' = -1,
+          'убирает средне' = 0,
+          'отлично убирает пыль' = 1
+        ),
+        c(
+          'плохо всасывает пыль' = -1,
+          'посредственно всасывает пыль' = 0,
+          'отлично всасывает пыль' = 1
+        ),
+        c(
+          'плохо пылесосит' = -1,
+          'посредственно пылесосит' = 0,
+          'дает хорошее качество уборки' = 1
+        )
+      ),
+      'Общая оценка' = list(
+        c('плохой' = -1, 'посредственный' = 0, 'отличный' = 1)
       )
     )
   )

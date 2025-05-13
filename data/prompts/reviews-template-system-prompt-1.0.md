@@ -46,4 +46,6 @@ functional effectiveness
 
 Maintain objectivity, avoid personal bias, prioritise systematic approach
 
+Оцените на основе отзыва продукт по следующим шкалам: {{scaleset_description}}
+
 Thank you for your assistance! Your insights are invaluable in understanding brand perceptions.

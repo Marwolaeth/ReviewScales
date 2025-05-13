@@ -112,45 +112,6 @@ semdiff_zeroshot_map <- function(
   #   dplyr::relocate(texts, .after = 1)
 }
 
-semdiff_similarity <- function(
-    text_embeddings,
-    norm_embeddings,
-    similarity_metric = 'cosine',
-    use_softmax = FALSE,
-    temperature = 10,
-    ...
-) {
-  
-  # Number of differential items un the scale
-  n_items <- length(norm_embeddings$texts)
-  
-  # Number of item pairs
-  n_comparisons <- n_items / 2
-  
-  similarity_matrix <- similarity_norm(
-    text_embeddings$texts$texts,
-    norm_embeddings,
-    metric = similarity_metric
-  )
-  
-  max_bipolar_scores <- apply(similarity_matrix, 2, max, na.rm = TRUE)
-  
-  if (use_softmax) {
-    max_bipolar_scores <- softmax(max_bipolar_scores * temperature)
-    # Summation pattern
-    mask <- rep(c(0, 1), n_comparisons)
-  } else {
-    mask <- rep(c(-1, 1), n_comparisons)
-  }
-  
-  score <- ((max_bipolar_scores %*% mask) / n_comparisons)[1]
-  
-  tibble::tibble(
-    items = paste(names(norm_embeddings$texts), collapse = ' – '),
-    .score = score
-  )
-}
-
 semdiff_chat <- function(
     texts,
     model,

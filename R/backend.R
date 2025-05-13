@@ -2,10 +2,14 @@ library(tidyr)
 library(text)
 library(ellmer)
 
-EXAMPLE_GENERAL_PATH <- file.path(
-  'data',
-  'prompts',
-  'semdiff-few-shot-example-general.md'
+## Text Utils ----
+reticulate::source_python(
+  system.file(
+    'python',
+    'huggingface_Interface3.py',
+    package = 'text',
+    mustWork = TRUE
+  )
 )
 
 ## Back-end Functions ----
@@ -118,141 +122,6 @@ semdiff_zeroshot <- function(
     dplyr::pull(score)
 }
 
-.extract_concepts <- function(items, ids, group = FALSE, sep = ', ') {
-  concepts <- lapply(items, names) |>
-    purrr::map(\(item) item[ids])
-  if (group) {
-    concepts <- concepts |>
-      purrr::pmap_chr(paste, sep = sep)
-  } else {
-    concepts <- unlist(concepts)
-  }
-  
-  return(concepts)
-}
-.extract_concepts <- compiler::cmpfun(.extract_concepts, options = list(optimize=3))
-
-.items_to_norms <- function(
-    items,
-    model,
-    as_phrases = FALSE,
-    template = NULL,
-    prefix = FALSE,
-    group_items = FALSE,
-    aggregation = if (as_phrases) 'cls' else 'mean',
-    sep = ', ',
-    ...
-) {
-  if (!is.list(items)) items <- list(items)
-  
-  .check_scale(items)
-  
-  concepts <- .extract_concepts(items, c(1, 3), group_items, sep)
-  
-  concept_names <- concepts
-  
-  if (as_phrases) {
-    if (is.null(template)) template <- 'Y – {}'
-    concepts <- sapply(
-      concepts,
-      function(concept) {
-        stringr::str_replace(
-          template,
-          stringr::fixed('{}'),
-          stringr::fixed(concept)
-        )
-      }
-    )
-  }
-  if (prefix) concepts <- paste('classification:', concepts)
-  
-  concepts_df <- tibble::as_tibble(
-    as.list(concepts) |> setNames(concept_names)
-  )
-  
-  text_embed(
-    concepts_df,
-    model = model,
-    keep_token_embeddings = FALSE,
-    aggregation_from_tokens_to_texts = aggregation,
-    ...
-  )
-}
-
-similarity_norm <- function(
-    text_embeddings,
-    norm_embeddings,
-    metric = 'cosine'
-) {
-  metric <- match.arg(metric, c('cosine', 'spearman', 'pearson', 'kendall'))
-  
-  if (nrow(text_embeddings) == 0) {
-    return(matrix(0, nrow = 1, ncol = length(norm_embeddings$texts)))
-  }
-  
-  texts <- text_embeddings |>
-    dplyr::select(dplyr::starts_with('Dim')) |>
-    as.matrix()
-  concepts <- norm_embeddings$texts |>
-    purrr::map(as.matrix) |>
-    purrr::reduce(rbind)
-  
-  if (metric == 'cosine') {
-    texts_norms <- sqrt(rowSums(texts^2))
-    concept_norms <- sqrt(rowSums(concepts^2))
-    
-    S <- (texts %*% t(concepts)) / (texts_norms %*% t(concept_norms))
-  } else {
-    S <- cor(t(texts), t(concepts), method = metric)
-  }
-  
-  colnames(S) <- names(norm_embeddings$texts)
-  return(S)
-}
-similarity_norm <- compiler::cmpfun(similarity_norm, options = list(optimize=3))
-
-benchmark_similarity <- function(
-    norm_embeddings,
-    model,
-    template,
-    prefix = FALSE,
-    aggregation = if (prefix) 'cls' else 'token',
-    metric = 'cosine',
-    ...
-) {
-  concepts <- names(norm_embeddings$texts)
-  
-  hypotheses <- sapply(
-    concepts,
-    function(concept) {
-      stringr::str_replace(
-        template,
-        stringr::fixed('{}'),
-        stringr::fixed(concept)
-      )
-    }
-  )
-  
-  if (prefix) hypotheses <- paste('classification:', hypotheses)
-  
-  hypotheses_embeddings <- text_embed(
-    hypotheses,
-    model,
-    aggregation_from_tokens_to_texts = aggregation,
-    ...
-  )
-  
-  score <- diag(
-    similarity_norm(
-      hypotheses_embeddings$texts$texts,
-      norm_embeddings,
-      metric = metric
-    )
-  )
-  names(score) <- concepts
-  return(score)
-}
-
 .generate_scale_description <- function(scale, name, max_items = NULL) {
   markers <- purrr::map(scale, names)
   items_neg <- purrr::map_chr(markers, 1)
@@ -308,7 +177,7 @@ benchmark_similarity <- function(
       'The text provides no relevant info concerning the scale «{name}»'
     )
     example_text <- glue::glue(
-      'Мне нечего сказать про {universal_brand_name}.'
+      'Мне нечего сказать про этот продукт.'
     )
   } else {
     if (rating < 0) {
@@ -365,7 +234,7 @@ benchmark_similarity <- function(
     )
     
     example_text <- glue::glue(
-      '{modal}, что {universal_brand_name} — {quantifier} {marker}'
+      '{modal}, что этот продукт — {quantifier} {marker}'
     )
   }
   response <- glue::glue(
@@ -410,21 +279,21 @@ benchmark_similarity <- function(
 
 .generate_schema <- function(scaleset) {
   type_scale <- ellmer::type_enum(
-    description = 'Шкала оценки имиджа бренда (evaluation scale). Укажите название шкалы, по которой вы оцениваете имидж бренда "Y", отраженный в тексте.',
+    description = 'Шкала оценки продукта (evaluation scale). Укажите название шкалы, по которой оценивается продукт.',
     values = names(scaleset),
     required = TRUE
   )
   type_rating <- ellmer::type_number(
-    description = 'Оценка имиджа бренда "Y" по данной семантической шкале. Значение должно находиться в диапазоне от -5 (очень отрицательная оценка) до 5 (очень положительная оценка). При недостатке информации о бренде "Y" в данном тексте поставьте 0.',
+    description = 'Оценка продукта в отзыве по данной семантической шкале. Значение должно находиться в диапазоне от -5 (очень отрицательная оценка) до 5 (очень положительная оценка). При недостатке информации по данной шкале поставьте 0.',
     required = TRUE
   )
   type_scale_comment <- ellmer::type_string(
-    description = 'Комментарий, объясняющий вашу оценку для бренда "Y". Опишите, что вы поняли из текста о мнении автора относительно бренда и как бренд представлен в тексте.',
+    description = 'Комментарий, объясняющий вашу оценку на основе отзыва. Опишите, что вы поняли из текста о мнении пользователя относительно продукта.',
     required = FALSE
   )
   
   type_scale_eval <- ellmer::type_object(
-    .description = 'Оценка для бренда "Y" по семантической шкале (evaluation scale). Каждый объект должен содержать название шкалы, оценку и, при необходимости, комментарий. Оценка должна основываться исключительно на предоставленном тексте.',
+    .description = 'Оценка продукта по семантической шкале (evaluation scale) на основе отзыва. Каждый объект должен содержать название шкалы, оценку и, при необходимости, комментарий. Оценка должна основываться исключительно на предоставленном тексте.',
     scale = type_scale,
     rating = type_rating,
     comment = type_scale_comment,
@@ -432,7 +301,7 @@ benchmark_similarity <- function(
   )
   
   ellmer::type_array(
-    description = 'Массив оценок имиджа бренда "Y" по каждой из необходимых семантических шкал (evaluation scales). Каждая шкала должна быть оценена ровно один раз.',
+    description = 'Массив оценок продукта по каждой из необходимых семантических шкал (evaluation scales). Каждая шкала должна быть оценена ровно один раз.',
     items = type_scale_eval,
     required = TRUE
   )
@@ -442,6 +311,7 @@ generate_prompts <- function(
     scaleset,
     system_prompt_template,
     user_prompt_template,
+    product_type,
     max_items = NULL,
     sample_items = FALSE
 ) {
@@ -474,56 +344,8 @@ generate_prompts <- function(
       paste(collapse = ', ')
   }
   
-  ### Пример оценки шкал ----
-  ### Если автоматический пример ответа не требуется, то не надо его составлять
-  scaleset_example_required <- any(
-    stringr::str_detect(
-      c(system_prompt_template, user_prompt_template),
-      stringr::fixed('{scaleset_example}')
-    )
-  )
-  
-  ### Если требуется, то надо составить
-  if (scaleset_example_required) {
-    scaleset_example <- .generate_scaleset_example(scaleset, sample_items)
-    ### Если нет автоматического примера ответа, то, возможно, формат не прописан
-  }
-  
-  ### Пример оценки общий ----
-  format_example_required <- any(
-    stringr::str_detect(
-      c(system_prompt_template, user_prompt_template),
-      stringr::fixed('{general_example}')
-    )
-  )
-  general_example <- ellmer::interpolate_file(EXAMPLE_GENERAL_PATH)
-  
-  if (!format_example_required) {
-    #### Проверим, прописан ли формат
-    format_example_provided <- stringr::str_detect(
-      system_prompt_template,
-      '\\"rating\\"\\:'
-    ) & stringr::str_detect(
-      system_prompt_template,
-      '\\"comment\\"\\:'
-    )
-    #### Если не прописан, добавим
-    if (!format_example_provided) {
-      ##### Добавим описание формата в конец инструкции
-      system_prompt_template <- paste(
-        system_prompt_template,
-        '**Examples:**',
-        general_example,
-        sep = '\n'
-      )
-    }
-  }
-  
-  ### Если есть хотя бы один плейсхолдер, используем `glue`
-  if (
-    scaleset_example_required |
-    scaleset_description_required |
-    format_example_required
+  ### Если есть плейсхолдер, используем `glue`
+  if (scaleset_description_required
   ) {
     system_prompt_template <- ellmer::interpolate(system_prompt_template)
   }
@@ -595,6 +417,7 @@ extract_data_map <- function(texts, model, prompts, ...) {
     texts,
     ~ ellmer::interpolate(prompts$user, text = .)
   )
+  print(tasks)
   
   purrr::map(
     tasks,

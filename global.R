@@ -40,9 +40,6 @@ load('data/models/models.RData')
 chat_models <- seq_along(ellmer:::ollama_models()) |>
   purrr::set_names(ellmer:::ollama_models())
 
-## Единый объект для оценки ----
-universal_brand_name <- 'Y'
-
 ## Шкала тахометров ----
 GAUGE_SCALE <- 5
 
@@ -51,32 +48,20 @@ GAUGE_SCALE <- 5
 DEFAULT_SYSTEM_PROMPT_TEMPLATE_file <- file.path(
   'data',
   'prompts',
-  'semdiff-template-system-prompt-1.1.md'
+  'reviews-template-system-prompt-1.0.md'
 )
 DEFAULT_SYSTEM_PROMPT_TEMPLATE <- readr::read_file(
   DEFAULT_SYSTEM_PROMPT_TEMPLATE_file
-)
-
-DEFAULT_SYSTEM_PROMPT_TEMPLATE <- stringr::str_replace(
-  DEFAULT_SYSTEM_PROMPT_TEMPLATE,
-  stringr::fixed('{{universal_brand_name}}'),
-  stringr::fixed(universal_brand_name)
 )
 
 ### User ----
 DEFAULT_USER_PROMPT_TEMPLATE_file <- file.path(
   'data',
   'prompts',
-  'semdiff-template-user-prompt.md'
+  'reviews-template-user-prompt.md'
 )
 DEFAULT_USER_PROMPT_TEMPLATE <- readr::read_file(
   DEFAULT_USER_PROMPT_TEMPLATE_file
-)
-
-DEFAULT_USER_PROMPT_TEMPLATE <- stringr::str_replace(
-  DEFAULT_USER_PROMPT_TEMPLATE,
-  stringr::fixed('{{universal_brand_name}}'),
-  stringr::fixed(universal_brand_name)
 )
 
 ### Placeholders ----
@@ -91,8 +76,7 @@ ALLOWED_PLACEHOLDERS_CHAT <- c(
   'n_scales',
   'scale_names',
   'scaleset_description',
-  'general_example',
-  'scaleset_example'
+  '{{product_type}}'
 )
 
 ## Отображение Reactable ----
