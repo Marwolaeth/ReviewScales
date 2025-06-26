@@ -4,16 +4,6 @@ library(readr)
 
 compiler::enableJIT(3)
 
-GLUE_PATTERN_NLI <- stringr::regex(
-  '\\{\\s*([^}]+?)\\s*\\}',
-  comments = FALSE
-)
-
-GLUE_PATTERN_CHAT <- stringr::regex(
-  '\\{\\{\\s*([^}]+?)\\s*\\}\\}',
-  comments = FALSE
-)
-
 ## Utils ----
 
 like_path <- function(string) {
@@ -70,17 +60,12 @@ str_parenthesise <- compiler::cmpfun(
 )
 
 str_keep_allowed <- function(match, allowed, pattern) {
-  var <- stringr::str_replace_all(match, pattern, '\\1') |>
-    stringr::str_trim(side = 'both')
+  var <- str_replace_all(match, pattern, '\\1')
   ifelse(var %in% allowed, match, '')
 }
 
-str_remove_unauthorized <- function(prompt, allowed, double = TRUE) {
-  if (double) {
-    pttrn = GLUE_PATTERN_CHAT
-  } else {
-    pttrn = GLUE_PATTERN_NLI
-  }
+str_remove_unauthorized <- function(prompt, allowed) {
+  pttrn <- stringr::regex('\\{+\\s*([^[{}]]+?)\\s*\\}+', comments = FALSE)
   
   stringr::str_replace_all(
     prompt,

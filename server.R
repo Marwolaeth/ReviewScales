@@ -49,10 +49,7 @@ server <- function(input, output, session) {
     req(input$hypothesis_template)
     
     input$hypothesis_template |>
-      str_remove_unauthorized(
-        allowed = ALLOWED_PLACEHOLDERS_NLI,
-        double = FALSE
-      ) |>
+      str_remove_unauthorized(allowed = ALLOWED_PLACEHOLDERS_NLI) |>
       stringr::str_replace(
         fixed('{product_type}'),
         fixed(input$object)
@@ -128,10 +125,7 @@ server <- function(input, output, session) {
     req(input$hypothesis_template)
     
     input$hypothesis_template |>
-      str_remove_unauthorized(
-        allowed = ALLOWED_PLACEHOLDERS_NLI,
-        double = FALSE
-      ) |>
+      str_remove_unauthorized(allowed = ALLOWED_PLACEHOLDERS_NLI) |>
       stringr::str_replace(
         fixed('{product_type}'),
         fixed(tolower(input$object))
@@ -150,13 +144,11 @@ server <- function(input, output, session) {
   observeEvent(input$generate_prompts, {
     system_prompt <- str_remove_unauthorized(
       input$chat_system_prompt,
-      allowed = ALLOWED_PLACEHOLDERS_CHAT,
-      double = TRUE
+      allowed = ALLOWED_PLACEHOLDERS_CHAT
     )
     user_prompt <- str_remove_unauthorized(
       input$chat_user_prompt,
-      allowed = ALLOWED_PLACEHOLDERS_CHAT,
-      double = TRUE
+      allowed = ALLOWED_PLACEHOLDERS_CHAT
     )
     
     prompt_templates[['system']] <- system_prompt

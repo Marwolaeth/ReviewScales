@@ -23,6 +23,8 @@ examples <- readxl::read_excel('data/example-sentences.xlsx')
 # 
 # Достоинства: небольшой, мощный, есть регулировка мощности и самособирающийся шнур
 # Недостатки: маленькие красные штуки типа щеток, на насадках, отлетели на второй раз, но не страшно
+#
+# Хороший недорогой пылесос,  соски отлично
 
 ## Список моделей ----
 load('data/models/models.RData')
@@ -31,8 +33,9 @@ load('data/models/models.RData')
 #   dplyr::select(name, model) |>
 #   tibble::deframe()
 
-chat_models <- seq_along(ellmer:::ollama_models()) |>
-  purrr::set_names(ellmer:::ollama_models())
+ollama_model_names <- ellmer:::models_ollama()$id
+chat_models <- seq_along(ollama_model_names) |>
+  purrr::set_names(ollama_model_names)
 
 ## Шкала тахометров ----
 GAUGE_SCALE <- 2
@@ -66,11 +69,11 @@ ALLOWED_PLACEHOLDERS_NLI <- c(
 
 ALLOWED_PLACEHOLDERS_CHAT <- c(
   'text',
-  '{{text}}',
+  '{text}',
   'n_scales',
   'scale_names',
   'scaleset_description',
-  '{{product_type}}'
+  'product_type'
 )
 
 ## Отображение Reactable ----
