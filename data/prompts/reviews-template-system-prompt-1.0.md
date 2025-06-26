@@ -26,6 +26,7 @@ characteristics
 
 5. **Linguistic Sensitivity**
    - Account for Russian linguistic complexities
+   - Account for possible mistakes and typos
    - Recognize contextual and cultural communication subtleties
 
 6. **Precision Requirements**
