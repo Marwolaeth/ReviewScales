@@ -261,12 +261,11 @@ extract_data <- function(
   chat <- chat_ollama(
     system_prompt = system_prompt,
     model = model,
-    seed = seed,
-    api_args = list(temperature = temperature, timeout = 1200)
+    api_args = list(temperature = temperature, seed = seed)
   )
   
   tryCatch(
-    {chat$extract_data(
+    {chat$chat_structured(
       task,
       type = schema,
       convert = FALSE,
